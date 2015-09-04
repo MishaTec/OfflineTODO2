@@ -22,7 +22,6 @@ public class DebtListApplication extends Application {
         Parse.enableLocalDatastore(getApplicationContext());
 
         // Required - Initialize the Parse SDK
-
         Parse.initialize(this);
         ParseUser.enableRevocableSessionInBackground();// TODO: 04/09/2015
 
@@ -33,7 +32,7 @@ public class DebtListApplication extends Application {
         ParseUser.getCurrentUser().increment("RunCount");
         ParseUser.getCurrentUser().saveInBackground();
 
-        ParseACL defaultACL = new ParseACL();// TODO: 04/09/2015
-        ParseACL.setDefaultACL(defaultACL, true);
+//        ParseACL defaultACL = new ParseACL();// TODO: 04/09/2015
+//        ParseACL.setDefaultACL(defaultACL, true);
     }
 }

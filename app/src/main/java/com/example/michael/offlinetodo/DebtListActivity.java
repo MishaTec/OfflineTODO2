@@ -77,7 +77,7 @@ public class DebtListActivity extends Activity {
         ParseQueryAdapter.QueryFactory<Debt> factory = new ParseQueryAdapter.QueryFactory<Debt>() {
             public ParseQuery<Debt> create() {
                 ParseQuery<Debt> query = Debt.getQuery();
-                query.orderByDescending("createdAt");
+                query.orderByAscending("createdAt");
                 query.fromLocalDatastore();
                 return query;
             }
@@ -115,12 +115,44 @@ public class DebtListActivity extends Activity {
     }
 
     private void updateLoggedInInfo() {
+        ParseUser curr = ParseUser.getCurrentUser();
+        String token = curr.getSessionToken();
+        String authData = curr.getString("authData");
+        boolean isLinked = ParseAnonymousUtils.isLinked(curr);
+
+        ParseQuery<Debt> query = Debt.getQuery();
+        query.whereEqualTo("author", ParseUser.getCurrentUser());
+        query.findInBackground(new FindCallback<Debt>() {
+            public void done(List<Debt> debts, ParseException e) {
+                if (e == null) {
+                    ParseObject.pinAllInBackground((List<Debt>) debts,
+                            new SaveCallback() {
+                                public void done(ParseException e) {
+                                    if (e == null) {
+                                        if (!isFinishing()) {
+                                            debtListAdapter.loadObjects();
+                                        }
+                                    } else {
+                                        Log.i("DebtListActivity",
+                                                "Error pinning debts: "
+                                                        + e.getMessage());
+                                    }
+                                }
+                            });
+                } else {
+                    Log.i("DebtListActivity",
+                            "loadFromParse: Error finding pinned debts: "
+                                    + e.getMessage());
+                }
+            }
+        });
+        String info = "\nauthData: "+authData+"\ntoken: "+token+"\nisLinked: "+isLinked;
         if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
             ParseUser currentUser = ParseUser.getCurrentUser();
             loggedInInfoView.setText(getString(R.string.logged_in,
-                    currentUser.getString("name")));
+                    currentUser.getString("name"))+info);
         } else {
-            loggedInInfoView.setText(getString(R.string.not_logged_in));
+            loggedInInfoView.setText(getString(R.string.not_logged_in)+info);// TODO: 04/09/2015 remove info
         }
     }
 
@@ -256,6 +288,7 @@ public class DebtListActivity extends Activity {
                                                         e.getMessage(),
                                                         Toast.LENGTH_SHORT).show();
                                             }
+                                            System.out.println("########################################\n##################################\n############\n"+e.getMessage()+"\n##############\n############################");
                                             // Reset the is draft flag locally to true
                                             debt.setDraft(true);
                                             // Save flag field as late as possible - to deal with
