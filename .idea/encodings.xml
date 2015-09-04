@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/ParseLoginUI" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/libs/Parse-1.10.1.jar" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/example/michael/offlinetodo/Debt.java" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/example/michael/offlinetodo/DebtListActivity.java" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/example/michael/offlinetodo/DebtListApplication.java" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/example/michael/offlinetodo/EditDebtActivity.java" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/color" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable-hdpi" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable-mdpi" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable-xhdpi" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable-xxhdpi" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable/com_parse_ui_facebook_login_button_background_selector.xml" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/drawable/com_parse_ui_twitter_login_button_background_selector.xml" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/layout" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/menu" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/values/colors.xml" charset="windows-1255" />
+    <file url="file://$PROJECT_DIR$/app/src/main/res/values/dimens.xml" charset="windows-1255" />
+    <file url="PROJECT" charset="UTF-8" />
+  </component>
+</project>
