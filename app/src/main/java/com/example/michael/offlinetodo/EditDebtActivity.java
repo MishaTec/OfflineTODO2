@@ -9,10 +9,17 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.parse.GetCallback;
+import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
+import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
 import com.parse.SaveCallback;
+
+import org.json.JSONObject;
+
+import java.util.Set;
+
 
 public class EditDebtActivity extends Activity {
 
@@ -62,7 +69,6 @@ public class EditDebtActivity extends Activity {
 
             @Override
             public void onClick(View v) {
-
                 debt.setTitle(debtText.getText().toString());
                 debt.setDraft(true);
                 debt.setAuthor(ParseUser.getCurrentUser());

@@ -1,5 +1,6 @@
 package com.example.michael.offlinetodo;
 
+import java.util.Arrays;
 import java.util.List;
 
 import android.app.Activity;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -61,6 +63,10 @@ public class DebtListActivity extends Activity {
     private TextView loggedInInfoView;
 
     private boolean isShowLoginOnFail = false;
+    private boolean isSignupFailed = false;
+
+    private int numPinned;//// TODO: 05/09/2015 remove
+    private int numSaved;//// TODO: 05/09/2015 remove
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +83,7 @@ public class DebtListActivity extends Activity {
         ParseQueryAdapter.QueryFactory<Debt> factory = new ParseQueryAdapter.QueryFactory<Debt>() {
             public ParseQuery<Debt> create() {
                 ParseQuery<Debt> query = Debt.getQuery();
-                query.orderByAscending("createdAt");
+                query.orderByDescending("createdAt");
                 query.fromLocalDatastore();
                 return query;
             }
@@ -99,6 +105,8 @@ public class DebtListActivity extends Activity {
                 openEditView(debt);
             }
         });
+        updateLoggedInInfo();// TODO: 05/09/2015 remove
+
     }
 
     @Override
@@ -115,44 +123,43 @@ public class DebtListActivity extends Activity {
     }
 
     private void updateLoggedInInfo() {
+        // TODO: 05/09/2015 remove info
+
         ParseUser curr = ParseUser.getCurrentUser();
         String token = curr.getSessionToken();
-        String authData = curr.getString("authData");
+        boolean isAuth = curr.isAuthenticated();
+        boolean isDataAvai = curr.isDataAvailable();
+        boolean isNew = curr.isNew();
+        boolean isDirty = curr.isDirty();
+        boolean isDirtyFixed = false;
         boolean isLinked = ParseAnonymousUtils.isLinked(curr);
+        countSavedAndPinnedObjects();
+        String dirtyKey = null;
+        String keys = Arrays.toString(curr.keySet().toArray());
+        int numDirty = 0;
+        if (isDirty) {
 
-        ParseQuery<Debt> query = Debt.getQuery();
-        query.whereEqualTo("author", ParseUser.getCurrentUser());
-        query.findInBackground(new FindCallback<Debt>() {
-            public void done(List<Debt> debts, ParseException e) {
-                if (e == null) {
-                    ParseObject.pinAllInBackground((List<Debt>) debts,
-                            new SaveCallback() {
-                                public void done(ParseException e) {
-                                    if (e == null) {
-                                        if (!isFinishing()) {
-                                            debtListAdapter.loadObjects();
-                                        }
-                                    } else {
-                                        Log.i("DebtListActivity",
-                                                "Error pinning debts: "
-                                                        + e.getMessage());
-                                    }
-                                }
-                            });
-                } else {
-                    Log.i("DebtListActivity",
-                            "loadFromParse: Error finding pinned debts: "
-                                    + e.getMessage());
+            for (String key : curr.keySet()) {
+                if (curr.isDirty(key)) {
+                    numDirty++;
+                    dirtyKey = key;
                 }
             }
-        });
-        String info = "\nauthData: "+authData+"\ntoken: "+token+"\nisLinked: "+isLinked;
+
+            // TODO: 05/09/2015 fix dirty
+            curr = ParseUser.getCurrentUser();
+            isDirty = curr.isDirty();
+            if (!isDirty) {
+                isDirtyFixed = true;
+            }
+        }
+        String info = "\nuser: " + curr.getUsername() + "\nisAuth: " + isAuth + "\nisDataAvai: " + isDataAvai + "\nisNew: " + isNew + "\nisDirty: " + isDirty + (isDirtyFixed ? " (fixed)" : "") + "\nkeys: " + keys + "\ndirtyKey: " + dirtyKey + "\nnumDirty: " + numDirty + "\ntoken: " + token + "\nisLinked: " + isLinked + "\npinned: " + numPinned + "\nsaved: " + numSaved;
         if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
             ParseUser currentUser = ParseUser.getCurrentUser();
             loggedInInfoView.setText(getString(R.string.logged_in,
-                    currentUser.getString("name"))+info);
+                    currentUser.getString("name")) + info);
         } else {
-            loggedInInfoView.setText(getString(R.string.not_logged_in)+info);// TODO: 04/09/2015 remove info
+            loggedInInfoView.setText(getString(R.string.not_logged_in) + info);// TODO: 04/09/2015 remove info
         }
     }
 
@@ -162,17 +169,33 @@ public class DebtListActivity extends Activity {
         startActivityForResult(i, EDIT_ACTIVITY_CODE);
     }
 
-    public void openLoginView(Context context) {
-        ParseLoginBuilder builder = new ParseLoginBuilder(context);
-        if (ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {// TODO: 02/09/2015 remove all next
-//            ParseUser.logOut();
-//            ParseUser.deleteInBackground();
+    private void logoutFromParse() {
+        // Log out the current user
+        ParseUser.logOut();
+        // Create a new anonymous user
+        ParseAnonymousUtils.logIn(null);// FIXME: 02/09/2015
+        // Clear the view
+        debtListAdapter.clear();
+        // Unpin all the current objects
+        ParseObject.unpinAllInBackground(DebtListApplication.DEBT_GROUP_NAME);
+        // Update the logged in label info
+        updateLoggedInInfo();
+    }
+
+    private void openLoginView() {
+        ParseLoginBuilder builder = new ParseLoginBuilder(getApplicationContext());
+        EditText emailText = (EditText) findViewById(R.id.login_username_input);
+        ParseUser currentUser = ParseUser.getCurrentUser();
+        if (!ParseAnonymousUtils.isLinked(currentUser)) {// FIXME: 05/09/2015
+            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%******** "+(emailText==null));
         }
-        ParseUser curr = ParseUser.getCurrentUser();
-        String tokenBefore = curr.getSessionToken();
-        boolean isStillLinked = ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser());
-        System.out.println("******************************************************************* token before: " + tokenBefore + ", isLinked: " + isStillLinked);
+
         startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
+    }
+
+
+    private void autoLogin() {
+        openLoginView();
     }
 
     @Override
@@ -187,13 +210,13 @@ public class DebtListActivity extends Activity {
             } else if (requestCode == LOGIN_ACTIVITY_CODE) {
                 // If the user is new, sync data to Parse,
                 // else get the current list from Parse
-                if (ParseUser.getCurrentUser().isNew()) {// TODO: 03/09/2015 changed
+                if (ParseUser.getCurrentUser().isNew()) {
                     syncDebtsToParse(true);
                 } else {
                     loadFromParse();
                 }
             }
-
+            updateLoggedInInfo();// TODO: 05/09/2015 remove
         }
     }
 
@@ -207,11 +230,9 @@ public class DebtListActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.action_new) {
-            // Make sure there's a valid user, anonymous
-            // or regular
+            // Make sure there's a valid user, anonymous or regular
             if (ParseUser.getCurrentUser() != null) {
-                startActivityForResult(new Intent(this, EditDebtActivity.class),
-                        EDIT_ACTIVITY_CODE);
+                startActivityForResult(new Intent(this, EditDebtActivity.class), EDIT_ACTIVITY_CODE);
             }
         }
 
@@ -220,23 +241,11 @@ public class DebtListActivity extends Activity {
         }
 
         if (item.getItemId() == R.id.action_logout) {
-            ParseUser curr = ParseUser.getCurrentUser();// TODO: 03/09/2015 remove
-            // Log out the current user
-            ParseUser.logOut();
-//            this.recreate();// TODO: 02/09/2015
-            // Create a new anonymous user
-//            ParseAnonymousUtils.logIn(null);// FIXME: 02/09/2015
-            // Update the logged in label info
-            updateLoggedInInfo();
-            // Clear the view
-            debtListAdapter.clear();
-            // Unpin all the current objects
-            ParseObject
-                    .unpinAllInBackground(DebtListApplication.DEBT_GROUP_NAME);
+            logoutFromParse();
         }
 
         if (item.getItemId() == R.id.action_login) {
-            openLoginView(this);
+            openLoginView();
         }
 
 
@@ -246,8 +255,7 @@ public class DebtListActivity extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        boolean isRealUser = !ParseAnonymousUtils.isLinked(ParseUser
-                .getCurrentUser());
+        boolean isRealUser = !ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser());
         menu.findItem(R.id.action_login).setVisible(!isRealUser);
         menu.findItem(R.id.action_logout).setVisible(isRealUser);
         return true;
@@ -283,26 +291,18 @@ public class DebtListActivity extends Activity {
                                                 debtListAdapter.notifyDataSetChanged();
                                             }
                                         } else {
-                                            if(!isShowLoginOnFail) {
+                                            if (!isShowLoginOnFail) {
                                                 Toast.makeText(getApplicationContext(),
                                                         e.getMessage(),
                                                         Toast.LENGTH_SHORT).show();
                                             }
-                                            System.out.println("########################################\n##################################\n############\n"+e.getMessage()+"\n##############\n############################");
+                                            System.out.println("########################################\n##################################\n############\n" + e.getMessage() + "\n##############\n############################");
                                             // Reset the is draft flag locally to true
                                             debt.setDraft(true);
                                             // Save flag field as late as possible - to deal with
                                             // asynchronous callback
                                             DebtListActivity.this.isShowLoginOnFail = isShowLoginOnFail;
-                                            handleParseError(e);
-//openLoginView(DebtListActivity.this);
-//											e.printStackTrace();// TODO: 02/09/2015 remove with next
-                                            ParseUser curr = ParseUser.getCurrentUser();
-                                            boolean isAnonymous = ParseAnonymousUtils.isLinked(curr);
-                                            String token = curr.getSessionToken();
-//                                            System.out.println();
-//                                            e.printStackTrace();
-
+                                            handleParseError(e);// FIXME: 05/09/2015
                                         }
                                     }
 
@@ -318,7 +318,7 @@ public class DebtListActivity extends Activity {
             } else {
                 // If we have a network connection but no logged in user, direct
                 // the person to log in or sign up.
-                openLoginView(this);
+                openLoginView();
             }
         } else {
             // If there is no connection, let the user know the sync didn't
@@ -360,6 +360,7 @@ public class DebtListActivity extends Activity {
         });
     }
 
+
     private class DebtListAdapter extends ParseQueryAdapter<Debt> {
 
         public DebtListAdapter(Context context,
@@ -380,6 +381,18 @@ public class DebtListActivity extends Activity {
                 holder = (ViewHolder) view.getTag();
             }
             TextView debtTitle = holder.debtTitle;
+
+            // TODO: 05/09/2015 remove info
+            ParseUser author = debt.getAuthor();
+            String token = author.getSessionToken();
+            boolean isAuth = author.isAuthenticated();
+            boolean isDataAvai = author.isDataAvailable();
+            boolean isNew = author.isNew();
+            boolean isDirty = author.isDirty();
+            boolean isLinked = ParseAnonymousUtils.isLinked(author);
+//            String info = "\nauthor: "+author.getUsername()+"\nisAuth: "+isAuth+"\nisDataAvai: "+isDataAvai+"\nisNew: "+isNew+"\nisDirty: "+isDirty+"\ntoken: "+token+"\nisLinked: "+isLinked;
+
+
             debtTitle.setText(debt.getTitle());
             if (debt.isDraft()) {
                 debtTitle.setTypeface(null, Typeface.ITALIC);
@@ -426,13 +439,46 @@ public class DebtListActivity extends Activity {
         // startActivityForResult(new ParseLoginBuilder(getActivity()).build(), 0);
         if (isShowLoginOnFail) {
             // only in case the user initiated the sync - no demanding login
-            openLoginView(this);
-        }
-        else{
+            openLoginView();
+        } else {
             Toast.makeText(getApplicationContext(),
                     "Sync failed",
                     Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void countSavedAndPinnedObjects() {
+        final int[] result = new int[2];
+
+        ParseQuery<Debt> query = Debt.getQuery();
+        query.fromPin(DebtListApplication.DEBT_GROUP_NAME);
+        query.findInBackground(new FindCallback<Debt>() {
+            public void done(List<Debt> debts, ParseException e) {
+                if (debts != null) {
+                    numPinned = debts.size();
+                } else {
+                    numPinned = -1;
+                }
+                if (e != null) {
+                    numPinned = -2;
+                }
+            }
+        });
+
+        query = Debt.getQuery();
+        query.whereEqualTo("author", ParseUser.getCurrentUser());
+        query.findInBackground(new FindCallback<Debt>() {
+            public void done(List<Debt> debts, ParseException e) {
+                if (debts != null) {
+                    numSaved = debts.size();
+                } else {
+                    numSaved = -1;
+                }
+                if (e != null) {
+                    numSaved = -2;
+                }
+            }
+        });
     }
 }
 
