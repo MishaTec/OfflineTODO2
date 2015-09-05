@@ -184,12 +184,9 @@ public class DebtListActivity extends Activity {
 
     private void openLoginView() {
         ParseLoginBuilder builder = new ParseLoginBuilder(getApplicationContext());
-        EditText emailText = (EditText) findViewById(R.id.login_username_input);
         ParseUser currentUser = ParseUser.getCurrentUser();
         if (!ParseAnonymousUtils.isLinked(currentUser)) {// FIXME: 05/09/2015
-            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%******** "+(emailText==null));
         }
-
         startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
     }
 
@@ -412,13 +409,15 @@ public class DebtListActivity extends Activity {
 
 
     public void handleParseError(ParseException e) {
-        switch (e.getCode()) {
+        handleInvalidSessionToken();// TODO: 05/09/2015  
+                
+        /*        switch (e.getCode()) {
             case ParseException.INVALID_SESSION_TOKEN:
                 handleInvalidSessionToken();
                 break;
 
             // Other Parse API errors
-        }
+        }*/
     }
 
     private void handleInvalidSessionToken() {// TODO: 04/09/2015 remove arg
