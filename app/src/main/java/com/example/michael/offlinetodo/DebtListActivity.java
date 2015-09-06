@@ -25,6 +25,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.parse.DeleteCallback;
 import com.parse.FindCallback;
 
 import com.parse.ParseAnonymousUtils;
@@ -50,6 +51,8 @@ public class DebtListActivity extends Activity {
 
     private static final int LOGIN_ACTIVITY_CODE = 100;
     private static final int EDIT_ACTIVITY_CODE = 200;
+
+    private static final boolean SHOW_LOGIN_ON_ERROR = true;
 
     // Adapter for the Debts Parse Query
     private ParseQueryAdapter<Debt> debtListAdapter;
@@ -116,15 +119,16 @@ public class DebtListActivity extends Activity {
         // Check if we have a real user
         if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
             // Sync data to Parse
-            syncDebtsToParse(false);
+            syncDebtsToParse(!SHOW_LOGIN_ON_ERROR);
             // Update the logged in label info
+
             updateLoggedInInfo();
         }
     }
 
     private void updateLoggedInInfo() {
-        // TODO: 05/09/2015 remove info
 
+        // TODO: 05/09/2015 remove info
         ParseUser curr = ParseUser.getCurrentUser();
         String token = curr.getSessionToken();
         boolean isAuth = curr.isAuthenticated();
@@ -173,11 +177,13 @@ public class DebtListActivity extends Activity {
         // Log out the current user
         ParseUser.logOut();
         // Create a new anonymous user
-        ParseAnonymousUtils.logIn(null);// FIXME: 02/09/2015
+//        ParseAnonymousUtils.logIn(null);// FIXME: 02/09/2015
         // Clear the view
-        debtListAdapter.clear();
+//        debtListAdapter.clear();// FIXME: 06/09/2015 uncomment
+        unpinSavedItems();// FIXME: 06/09/2015
+        debtListAdapter.notifyDataSetChanged();// FIXME: 06/09/2015
         // Unpin all the current objects
-        ParseObject.unpinAllInBackground(DebtListApplication.DEBT_GROUP_NAME);
+//        ParseObject.unpinAllInBackground(DebtListApplication.DEBT_GROUP_NAME);// FIXME: 06/09/2015 unpin only saved
         // Update the logged in label info
         updateLoggedInInfo();
     }
@@ -190,10 +196,6 @@ public class DebtListActivity extends Activity {
         startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
     }
 
-
-    private void autoLogin() {
-        openLoginView();
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -208,12 +210,12 @@ public class DebtListActivity extends Activity {
                 // If the user is new, sync data to Parse,
                 // else get the current list from Parse
                 if (ParseUser.getCurrentUser().isNew()) {
-                    syncDebtsToParse(true);
+                    syncDebtsToParse(SHOW_LOGIN_ON_ERROR);
                 } else {
                     loadFromParse();
                 }
             }
-            updateLoggedInInfo();// TODO: 05/09/2015 remove
+            updateLoggedInInfo();// TODO: 05/09/2015 debug
         }
     }
 
@@ -234,7 +236,7 @@ public class DebtListActivity extends Activity {
         }
 
         if (item.getItemId() == R.id.action_sync) {
-            syncDebtsToParse(true);
+            syncDebtsToParse(SHOW_LOGIN_ON_ERROR);
         }
 
         if (item.getItemId() == R.id.action_logout) {
@@ -446,7 +448,7 @@ public class DebtListActivity extends Activity {
         }
     }
 
-    private void countSavedAndPinnedObjects() {
+    private void countSavedAndPinnedObjects() {// TODO: 06/09/2015 remove
         final int[] result = new int[2];
 
         ParseQuery<Debt> query = Debt.getQuery();
@@ -475,6 +477,35 @@ public class DebtListActivity extends Activity {
                 }
                 if (e != null) {
                     numSaved = -2;
+                }
+            }
+        });
+    }
+
+    private void unpinSavedItems(){
+        ParseQuery<Debt> query = Debt.getQuery();
+        query.fromPin(DebtListApplication.DEBT_GROUP_NAME);
+        query.whereEqualTo("isDraft", false);
+        query.findInBackground(new FindCallback<Debt>() {
+            public void done(List<Debt> debts, ParseException e) {
+                if (e == null) {
+                    for (final Debt debt : debts) {
+                        debt.unpinInBackground(new DeleteCallback() {// FIXME: 04/09/2015
+                            @Override
+                            public void done(ParseException e) {
+                                if (e == null) {
+
+                                } else {
+
+                                }
+                            }
+
+                        });
+                    }
+                } else {
+                    Log.i("DebtListActivity",
+                            "syncDebtsToParse: Error finding pinned debts: "
+                                    + e.getMessage());
                 }
             }
         });
